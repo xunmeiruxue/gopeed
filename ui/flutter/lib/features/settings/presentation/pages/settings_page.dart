@@ -487,7 +487,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       fieldKey: const ValueKey('max-running-input'),
                       controller: _maxRunningController,
                       min: 1,
-                      max: 256,
                     ),
                   ),
                   SettingsItem(
@@ -548,7 +547,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       fieldKey: const ValueKey('http-connections-input'),
                       controller: _httpConnectionsController,
                       min: 1,
-                      max: 256,
                     ),
                   ),
                   SettingsItem(
@@ -587,7 +585,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       fieldKey: const ValueKey('hls-connections-input'),
                       controller: _hlsConnectionsController,
                       min: 1,
-                      max: 256,
                     ),
                   ),
                   SettingsItem(
@@ -980,10 +977,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _config = DownloaderConfig.fromJson(config.toJson());
     _syncingControllers = true;
     _downloadDirController.text = _config!.downloadDir;
-    _maxRunningController.text = _config!.maxRunning.clamp(1, 256).toString();
+    _maxRunningController.text = _unbounded(_config!.maxRunning).toString();
     _httpUserAgentController.text = _config!.protocolConfig.http.userAgent;
-    _httpConnectionsController.text = _config!.protocolConfig.http.connections.clamp(1, 256).toString();
-    _hlsConnectionsController.text = _config!.protocolConfig.hls.segmentConnections.clamp(1, 256).toString();
+    _httpConnectionsController.text = _unbounded(_config!.protocolConfig.http.connections).toString();
+    _hlsConnectionsController.text = _unbounded(_config!.protocolConfig.hls.segmentConnections).toString();
     _hlsMaxRetriesController.text = _config!.protocolConfig.hls.maxRetries.clamp(0, 30).toString();
     _btListenPortController.text = _config!.protocolConfig.bt.listenPort.clamp(0, 65535).toString();
     _btSeedRatioController.text = _config!.protocolConfig.bt.seedRatio.toString();
@@ -1072,19 +1069,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   void _applyTextControllers(DownloaderConfig config) {
     config.downloadDir = _downloadDirController.text.trim();
-    config.maxRunning = _boundedInt(_maxRunningController, fallback: config.maxRunning, min: 1, max: 256);
+    config.maxRunning = _boundedInt(_maxRunningController, fallback: config.maxRunning, min: 1);
     config.protocolConfig.http.userAgent = _httpUserAgentController.text.trim();
     config.protocolConfig.http.connections = _boundedInt(
       _httpConnectionsController,
       fallback: config.protocolConfig.http.connections,
       min: 1,
-      max: 256,
     );
     config.protocolConfig.hls.segmentConnections = _boundedInt(
       _hlsConnectionsController,
       fallback: config.protocolConfig.hls.segmentConnections,
       min: 1,
-      max: 256,
     );
     config.protocolConfig.hls.maxRetries = _boundedInt(
       _hlsMaxRetriesController,
@@ -1648,10 +1643,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return '$host:$port';
   }
 
-  int _boundedInt(TextEditingController controller, {required int fallback, required int min, required int max}) {
+  int _boundedInt(TextEditingController controller, {required int fallback, required int min, int? max}) {
     final value = int.tryParse(controller.text.trim());
-    return (value ?? fallback).clamp(min, max).toInt();
+    final resolved = value ?? fallback;
+    if (max == null) return _unbounded(resolved, min: min);
+    return resolved.clamp(min, max).toInt();
   }
+
+  /// Parallelism settings are intentionally not capped by the UI: the user owns
+  /// the tradeoff between throughput and memory. Only values that cannot be a
+  /// valid count (zero, negative, or unparsable) are normalized.
+  int _unbounded(int value, {int min = 1}) => value < min ? min : value;
 
   String _sectionTitle(_SettingsSection section) {
     return switch (section) {

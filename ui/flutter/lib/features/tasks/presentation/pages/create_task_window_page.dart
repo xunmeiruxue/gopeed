@@ -388,7 +388,6 @@ class _CreateTaskWindowPageState extends ConsumerState<CreateTaskWindowPage> {
                         fieldKey: const ValueKey('create-task-connections-input'),
                         controller: _connectionsController,
                         min: 1,
-                        max: 256,
                         hintText: context.l10n.enterCount,
                       ),
                     ),

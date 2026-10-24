@@ -1562,7 +1562,7 @@ void main() {
     expect(find.text('Password'), findsOneWidget);
   });
 
-  testWidgets('numeric settings use compact bounded spinner inputs', (WidgetTester tester) async {
+  testWidgets('numeric settings use compact spinner inputs', (WidgetTester tester) async {
     await _setTestSize(tester, const Size(1024, 900));
     final settingsController = FakeSettingsController();
     await tester.pumpWidget(
@@ -1588,8 +1588,10 @@ void main() {
     await tester.enterText(maxRunning, '999');
     await tester.pump(const Duration(milliseconds: 700));
 
-    expect(tester.widget<shad.TextField>(maxRunning).controller!.text, '256');
-    expect(settingsController.state.requireValue.config.maxRunning, 256);
+    // Parallelism inputs are intentionally unbounded: only invalid values
+    // (zero/negative) are normalized, so a large count must round-trip as-is.
+    expect(tester.widget<shad.TextField>(maxRunning).controller!.text, '999');
+    expect(settingsController.state.requireValue.config.maxRunning, 999);
 
     final seedRatio = find.byKey(const ValueKey('bt-seed-ratio-input'));
     await tester.ensureVisible(seedRatio);

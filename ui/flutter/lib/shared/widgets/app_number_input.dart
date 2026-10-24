@@ -119,7 +119,10 @@ class _NumericalRangeFormatter extends TextInputFormatter {
     if (newValue.text.isEmpty) return newValue;
     final parsed = int.tryParse(newValue.text);
     if (parsed == null) return oldValue;
-    final bounded = parsed.clamp(min, max ?? parsed).toInt();
+    // An absent max means "unbounded": clamp would throw when the typed value
+    // is below min and the upper bound is derived from it.
+    final upper = max;
+    final bounded = upper == null ? (parsed < min ? min : parsed) : parsed.clamp(min, upper).toInt();
     if (bounded == parsed) return newValue;
     final text = bounded.toString();
     return TextEditingValue(
