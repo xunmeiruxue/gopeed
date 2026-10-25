@@ -392,6 +392,14 @@ jobs:
                         UPDATE_CHANNEL: linuxDeb
                         GA4_MEASUREMENT_ID: ${{ env.GA4_MEASUREMENT_ID }}
                         GA4_API_SECRET: ${{ env.GA4_API_SECRET }}
+          EOF
+          # rpm refuses '-' in Version, so prerelease builds (2.0.0-beta.3+3)
+          # cannot be packaged as rpm. Keep AppImage and deb working instead of
+          # failing the whole job.
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease $VERSION: skipping rpm"
+          else
+            cat << EOF >> distribute_options.yaml
                 - name: rpm
                   package:
                     platform: linux
@@ -402,6 +410,7 @@ jobs:
                         GA4_MEASUREMENT_ID: ${{ env.GA4_MEASUREMENT_ID }}
                         GA4_API_SECRET: ${{ env.GA4_API_SECRET }}
           EOF
+          fi
           dart pub global activate -sgit https://github.com/GopeedLab/flutter_distributor.git --git-path packages/flutter_distributor
           flutter_distributor release --name linux
           cd dist/*
@@ -413,7 +422,9 @@ jobs:
 
           mv gopeed-*-linux.AppImage Gopeed-v${VERSION}-linux-${ARCH}.AppImage
           mv gopeed-*-linux.deb Gopeed-v${VERSION}-linux-${ARCH}.deb
-          mv gopeed-*-linux.rpm Gopeed-v${VERSION}-linux-${ARCH}.rpm
+          if [[ "$VERSION" != *-* ]]; then
+            mv gopeed-*-linux.rpm Gopeed-v${VERSION}-linux-${ARCH}.rpm
+          fi
       - name: Upload
         uses: shogo82148/actions-upload-release-asset@v1
         with:
